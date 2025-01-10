@@ -76,8 +76,9 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
         );
 
         res.json({ message: "Login feito com sucesso", token, user: logar });
+        
     } catch (err) {
         console.error(err);
-        next(err); 
+        next(); 
     }
 };
