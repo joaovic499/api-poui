@@ -39,32 +39,50 @@ export const criarVeiculo = async (req: Request, res: Response, next: NextFuncti
 }
 
 export const getVeiculos = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const {idUser} = req.params;
+    const { idUser } = req.params;
+    const { page = 1, pageSize = 10 } = req.query;
 
     try {
         if (!idUser) {
-            res.status(400).json({message: "Id do usuário obrigatório"});
-            return
+            res.status(400).json({ message: "Id do usuário obrigatório" });
+            return;
         }
 
-        const veiculos = await prisma.veiculo.findMany({
-            where: {
-                userId: idUser
-            },
+        const pageNumber = parseInt(page as string, 10);
+        const pageSizeNumber = parseInt(pageSize as string, 10);
+
+        if (isNaN(pageNumber) || isNaN(pageSizeNumber) || pageNumber < 1 || pageSizeNumber < 1) {
+            res.status(400).json({ message: "Parâmetros de paginação inválidos" });
+            return;
+        }
+
+        const totalVeiculos = await prisma.veiculo.count({
+            where: { userId: idUser }
+        });
+
+        const items = await prisma.veiculo.findMany({
+            where: { userId: idUser },
             select: {
+                chassiInt: true,
                 chassi: true,
                 modelo: true,
                 marca: true,
+                cor: true,
                 estado: true,
                 armazem: true,
                 procedencia: true,
-            }
+            },
+            skip: (pageNumber - 1) * pageSizeNumber,
+            take: pageSizeNumber,
         });
 
-        res.json(veiculos)
+        res.json({
+            items,
+        });
+        console.log(items)
     } catch (error) {
-        console.log("Erro ao buscar veiculos", error)
-        res.status(500).send("Erro ao buscar veiculos")
+        console.error("Erro ao buscar veículos:", error);
+        res.status(500).json({ message: "Erro ao buscar veículos" });
         next();
     }
-}
+};
